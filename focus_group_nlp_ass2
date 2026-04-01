@@ -1,0 +1,78 @@
+import string
+
+def analyze_shakespeare_sentiment(text):
+    # identify punctuation before removal to use it as a sentiment signal
+    emotion_marks = {"!", "?"}
+    
+    # DEFINING LEXICONS 
+    sentiment_dict = {
+        "love": 2, "heaven": 2, "noble": 2, "fair": 1, "sweet": 1, "grace": 1,
+        "hate": -2, "hell": -2, "vile": -2, "death": -2, "foul": -1, "dark": -1
+    }
+    negations = {"not", "never", "no", "nor", "none"}
+    conjunctions = {"but", "yet"}
+    intensifiers = {"thrice", "very", "most", "extremely"}
+
+    total_score = 0
+    negation_active = False
+    multiplier = 1
+    
+    # Split text while keeping punctuation attached to words for analysis
+    raw_tokens = text.lower().split()
+
+    for raw_word in raw_tokens:
+        # Punctuation-based Emotion Boosting
+        # Check for "!" or "?" to boost sentiment intensity before cleaning
+        punc_boost = 1.5 if any(p in raw_word for p in emotion_marks) else 1.0
+        
+        # Clean the word for lexicon matching (removes punctuation)
+        word = raw_word.translate(str.maketrans('', '', string.punctuation))
+        if not word: continue
+
+        # Conjunction Logic (Mid-sentence reset)
+        if word in conjunctions:
+            total_score = 0 
+            continue
+
+        # Valence Shifting (Word Intensifiers)
+        if word in intensifiers:
+            multiplier = 2 
+            continue
+
+        # Negation Flip
+        if word in negations:
+            negation_active = True
+            continue
+
+        # Lexicon Scoring
+        if word in sentiment_dict:
+            score = sentiment_dict[word]
+            
+            # Modifiers: multiplier * negation * punctuation boost
+            final_word_score = score * multiplier * punc_boost
+            if negation_active:
+                final_word_score *= -1
+            
+            total_score += final_word_score
+            
+            # Reset flags for the next word
+            negation_active = False
+            multiplier = 1
+
+    # FINAL CLASSIFICATION (Deliverable: Sentiment Output)
+    if total_score > 0.5: return "Positive"
+    elif total_score < -0.5: return "Negative"
+    return "Neutral"
+
+# DELIVERABLES: EXAMPLE SENTENCES WITH PREDICTIONS
+examples = [
+    "I love thee thrice more than life!",                  # Strong Positive (Intensity + Punctuation)
+    "Thou art not fair, but vile!",                        # Strong Negative (Negation + Conjunction + Punctuation)
+    "Hell is empty and all the devils are here.",          # Negative
+    "Parting is such sweet sorrow.",                       # Neutral (Balanced)
+    "To be, or not to be: that is the question."           # Neutral
+]
+
+print(f"{'Shakespearean Sentence':<55} | {'Sentiment'}")
+for sentence in examples:
+    print(f"{sentence:<55} , {analyze_shakespeare_sentiment(sentence)}")
